@@ -35,6 +35,11 @@ namespace Assets
 
         public void Perform(GameState inState, ushort playerId)
         {
+            if (Duration > 1)
+            {
+                throw new Exception($"Duration too great! {DateTime.Now.ToString()}");
+            }
+
             if (Right && !Left)
             {
                 inState.MovePlayer(playerId, 1 * Duration, 0);

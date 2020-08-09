@@ -73,11 +73,11 @@ namespace Assets
             }
             else
             {
-                for (int i = 0; i < MaxCommands - 1; i++)
-                {
-                    commands[i] = commands[i + 1];
-                }
-                commands[commands.Length - 1] = command;
+                //for (int i = 0; i < MaxCommands - 1; i++)
+                //{
+                //    commands[i] = commands[i + 1];
+                //}
+                //commands[commands.Length - 1] = command;
             }
         }
 
@@ -90,7 +90,7 @@ namespace Assets
             }
             else if (thread.ThreadState == ThreadState.Running)
             {
-                throw new Exception("Multiple connection calls attempted!");
+                throw new Exception($"Multiple connection calls attempted! {DateTime.Now.ToString()}");
             }
             serverEndPoint = new IPEndPoint(IPAddress.Parse(ip), port);
             thread.Start();
@@ -143,12 +143,23 @@ namespace Assets
 
         public void Update()
         {
+            float oldX = 0.0f;
+            if (displayState != null && displayState.GetPlayer(0) != null)
+                oldX = displayState.GetPlayer(0).x;
             if (!RunCommands())
             {
                 Debug.LogError("Run failed");
             }
             if (displayState != null)
                 displayState.ToWorld();
+
+            if (displayState != null && displayState.GetPlayer(0) != null)
+            {
+               if (Math.Abs(oldX - displayState.GetPlayer(0).x) > 2)
+               {
+                    throw new Exception($"Another error here to mess up my code... Good job! time {DateTime.Now.ToString()}");
+               }
+            }
             //Debug.PointsFromState(displayState);
             //Debug.Update();
         }
@@ -218,6 +229,11 @@ namespace Assets
                 gameStates[i] = gameStates[i + 1];
                 timeStamps[i] = timeStamps[i + 1];
             }
+            if (gameStates[gameStates.Length - 1].GetPlayer(0) != null &&
+                Math.Abs(gameStates[gameStates.Length - 1].GetPlayer(0).x - data.GameState.GetPlayer(0).x) > 2)
+            {
+                Debug.LogError("It seems it starts here! An exception for sure!");
+            }
             gameStates[gameStates.Length - 1] = data.GameState.Clone();
             timeStamps[timeStamps.Length - 1] = NetData.GetTimeStamp();
 
@@ -229,7 +245,7 @@ namespace Assets
         {
             GameState result = oldState.Clone();
             GameState.Player match;
-            for (int i = 0; i < (int)toState.Players?.Length; i++)
+            for (int i = 0; i < toState.Players?.Length; i++)
             {
                 match = result.GetPlayer(toState.Players[i].id);
                 if (match == null)
@@ -237,6 +253,10 @@ namespace Assets
 
                 if (match.id == id)
                 {
+                    if (Math.Abs(match.x - gameStates[gameStates.Length - 1].Players[i].x) > 2)
+                    {
+                        Debug.LogError("The chain goes on... Exception!");
+                    }
                     match.x = gameStates[gameStates.Length - 1].Players[i].x;
                     match.y = gameStates[gameStates.Length - 1].Players[i].y;
                 }
@@ -252,79 +272,91 @@ namespace Assets
 
         private bool RunCommands()
         {
-            if (stateMutex.WaitOne(1))
+            if (!stateMutex.WaitOne(1))
+                return false;
+
+            //double timeAgo = 0;
+            //int n = 1;
+            //long timeStamp = NetData.GetTimeStamp();
+            //while (timeAgo < Net.InterpolationTime * 1000 && n < timeStamps.Length)
+            //{
+            //    timeAgo = timeStamp - timeStamps[timeStamps.Length - ++n];
+            //}
+            //timeAgo -= Net.InterpolationTime * 1000;
+
+            //if (timeAgo <= 0)
+            //    timeAgo = 0;
+
+            //double diff = timeStamps[timeStamps.Length - (n - 1)] - timeStamps[timeStamps.Length - n];
+
+            //if (diff > 0)
+            //{
+            //    double frac = timeAgo / diff;
+            //    if (frac > 1)
+            //    {
+            //        frac = 1;
+            //    }
+            //    displayState = InterPolateState(Id, gameStates[timeStamps.Length - n], gameStates[timeStamps.Length - (n - 1)], frac);
+
+            //    for (int i = 0; i < unAckedCommands; i++)
+            //    {
+            //        ClientCommand com = commands[i];
+            //        if (commands[i] != null)
+            //            commands[i].Perform(displayState, Id);
+            //    }
+            //}
+            double targetTimeStamp = NetData.GetTimeStamp() - Net.InterpolationTime * 1000;
+            if (targetTimeStamp < 0)
+                targetTimeStamp = 0;
+
+            int n;
+            for (n = 1; n < timeStamps.Length && targetTimeStamp > timeStamps[n]; n++)
             {
-                //double timeAgo = 0;
-                //int n = 1;
-                //long timeStamp = NetData.GetTimeStamp();
-                //while (timeAgo < Net.InterpolationTime * 1000 && n < timeStamps.Length)
-                //{
-                //    timeAgo = timeStamp - timeStamps[timeStamps.Length - ++n];
-                //}
-                //timeAgo -= Net.InterpolationTime * 1000;
-
-                //if (timeAgo <= 0)
-                //    timeAgo = 0;
-
-                //double diff = timeStamps[timeStamps.Length - (n - 1)] - timeStamps[timeStamps.Length - n];
-
-                //if (diff > 0)
-                //{
-                //    double frac = timeAgo / diff;
-                //    if (frac > 1)
-                //    {
-                //        frac = 1;
-                //    }
-                //    displayState = InterPolateState(Id, gameStates[timeStamps.Length - n], gameStates[timeStamps.Length - (n - 1)], frac);
-
-                //    for (int i = 0; i < unAckedCommands; i++)
-                //    {
-                //        ClientCommand com = commands[i];
-                //        if (commands[i] != null)
-                //            commands[i].Perform(displayState, Id);
-                //    }
-                //}
-
-                double targetTimeStamp = NetData.GetTimeStamp() - Net.InterpolationTime * 1000;
-                if (targetTimeStamp < 0)
-                    targetTimeStamp = 0;
-
-                int n;
-                for (n = 1; n < timeStamps.Length && targetTimeStamp > timeStamps[n]; n++)
-                {
-                }
-                n--;
-
-                if (n >= timeStamps.Length - 1)
-                {
-                    // If used, insert extrapolation here
-                    displayState = gameStates[gameStates.Length - 1].Clone();
-                    Debug.Log("Missing stamps or issue with target timestamp");
-                }
-                else if (timeStamps[n] >= 0 && timeStamps[n] < timeStamps[n + 1] && timeStamps[n] < targetTimeStamp)
-                {
-                    // Calculate fraction of time that the target time is between the two states timestamps
-                    double frac = (targetTimeStamp - timeStamps[n]) / (timeStamps[n + 1] - timeStamps[n]);
-                    displayState = InterPolateState(Id, gameStates[n], gameStates[n + 1], frac);
-                }
-                else
-                {
-                    //true false false
-                    //Debug.Log($"First time or possible error, add some code here?  >= 0 : {timeStamps[n] >= 0 }  n.t < n+. t : { timeStamps[n] < timeStamps[n + 1] } n.t < tt { timeStamps[n] < targetTimeStamp} ");
-                    // 0 0 0
-                    Debug.Log($"n.t: {timeStamps[n]} n+.t: {timeStamps[n + 1]} t.t: {targetTimeStamp}");
-                }
-
-                for (int i = 0; i < unAckedCommands; i++)
-                {
-                    if (commands[i] != null)
-                        commands[i].Perform(displayState, Id);
-                }
-
-                stateMutex.ReleaseMutex();
-                return true;
             }
-            return false;
+            n--;
+
+            if (n >= timeStamps.Length - 1)
+            {
+                // If used, insert extrapolation here
+                displayState = gameStates[gameStates.Length - 1].Clone();
+                Debug.Log($"Missing stamps or issue with target timestamp. Target TS: {targetTimeStamp} n: {n} DateTime.Now: {DateTime.Now.ToString()}");
+            }
+            else if (timeStamps[n] >= 0 && timeStamps[n] < timeStamps[n + 1] && timeStamps[n] < targetTimeStamp)
+            {
+                // Calculate fraction of time that the target time is between the two states timestamps
+                double frac = (targetTimeStamp - timeStamps[n]) / (timeStamps[n + 1] - timeStamps[n]);
+                displayState = InterPolateState(Id, gameStates[n], gameStates[n + 1], frac);
+                if (NetData.GetTimeStamp() > 45000000 && Math.Abs(gameStates[n].GetPlayer(0).x - displayState.GetPlayer(0).x) > 2)
+                {
+                    Debug.Log($"Frac: {frac} n: {n} TS[n]: {timeStamps[n]} TS[n+1]: {timeStamps[n + 1]} TST: {targetTimeStamp} unacked: {unAckedCommands} \n" +
+                        $"px[n] {gameStates[n].GetPlayer(0).x} px[n+1] {gameStates[n+1].GetPlayer(0).x} displayS {displayState.GetPlayer(0).x} \n" +
+                        $"DateTime: {DateTime.Now.ToString()}");
+
+                    for (int i = 0; i < unAckedCommands; i++)
+                    {
+                        if (commands[i] != null)
+                            commands[i].Perform(displayState, Id);
+                    }
+                    stateMutex.ReleaseMutex();
+                    throw new Exception("It happened again, sire!");
+                }
+            }
+            else
+            {
+                //true false false
+                //Debug.Log($"First time or possible error, add some code here?  >= 0 : {timeStamps[n] >= 0 }  n.t < n+. t : { timeStamps[n] < timeStamps[n + 1] } n.t < tt { timeStamps[n] < targetTimeStamp} ");
+                // 0 0 0
+                Debug.Log($"n.t: {timeStamps[n]} n+.t: {timeStamps[n + 1]} t.t: {targetTimeStamp}");
+            }
+
+            for (int i = 0; i < unAckedCommands; i++)
+            {
+                if (commands[i] != null)
+                    commands[i].Perform(displayState, Id);
+            }
+
+            stateMutex.ReleaseMutex();
+            return true;
         }
 
         private void AckCommands(ushort ackId)

@@ -25,13 +25,13 @@ namespace Assets
         public const int FakeMaxLag = 0;//101;
         public const int FakeDropPercent = 0;//8;
         public const int DisconnectTimer = 300; // s
-        public const int MaxRewindTime = 1000;
+        public const int MaxRewindTime = 2000;
         public const int InterpolationTime = 1000;
         public const int MaxInterpolationStates = InterpolationTime * UpdateRate / 1000 + 5;
 
         public const int UpdateRate = 100;
         public const int UpdateDelay = (int)(1000 / UpdateRate + 0.5);
-        public const int SendRate = 1;
+        public const int SendRate = 10;
         public const int SendDelay = (int)(1000 / SendRate + 0.5);
 
         static System.Random r = new System.Random();

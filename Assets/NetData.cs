@@ -68,12 +68,12 @@ namespace Assets
         }
 
         /// <summary>
-        /// Gets time since start in 1000 milliseconds
+        /// Gets time since start in ticks / 10. (Milliseconds * 1000)
         /// </summary>
         /// <returns>Milliseconds * 1000</returns>
         public static long GetTimeStamp()
         {
-            return DateTime.Now.Ticks / 10;
+            //return DateTime.Now.Ticks / 10;
             return (long)(watch?.Elapsed.TotalMilliseconds * 1000);
         }
 

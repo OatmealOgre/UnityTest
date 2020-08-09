@@ -14,6 +14,8 @@ using Assets;
 public class NetworkScript : MonoBehaviour
 {
 
+    public List<string> errorMessages;
+
     public bool isServer = false;
     public bool autoServer = true;
 
@@ -23,6 +25,37 @@ public class NetworkScript : MonoBehaviour
 
     Server server;
     Client client;
+
+    private void OnEnable()
+    {
+        //errorMessages = new List<string>();
+        //Application.logMessageReceived += OnLogException;
+        //errorMessages.Add("Activated!");
+    }
+
+    private void OnDisable()
+    {
+        //Application.logMessageReceived -= OnLogException;
+    }
+
+    private void OnLogException(string _message, string _stackTrace, LogType _logType)
+    {
+        if (_logType == LogType.Exception)
+        {
+            errorMessages.Add(_message);
+            if (Application.isEditor)
+            {
+                // Only break in editor to allow examination of the current scene state.
+                //Debug.Break();
+            }
+            else
+            {
+                // There's no standard way to return an error code to the OS,
+                // so just quit regularly.
+                //Application.Quit();
+            }
+        }
+    }
 
     // Start is called before the first frame update
     void Start()
@@ -84,14 +117,50 @@ public class NetworkScript : MonoBehaviour
         else
         {
             client = new Client();
+            Debug.Log($"Client begin connect. {DateTime.Now.ToString()}");
             client.Connect("127.0.0.1");
         }
 
         hasStarted = true;
     }
 
+    private void WindowFunc(int id)
+    {
+        GUI.Label(new Rect(65, 45, 200, 30), errorMessages[id]);
+
+        if (GUI.Button(new Rect(60, 150, 75, 30), "OK"))
+        {
+            errorMessages.RemoveAt(id);
+        }
+        if (GUI.Button(new Rect(165, 150, 75, 30), "Close All"))
+        {
+            errorMessages = new List<string>();
+        }
+    }
+
     private void OnGUI()
     {
+        //var oldcol = GUI.color;
+        //var oldbg = GUI.backgroundColor;
+        //var oldcont = GUI.contentColor;
+        
+        //GUI.color = Color.yellow;
+        //GUI.backgroundColor = new Color(255,255,255,1);
+        //GUI.contentColor = Color.red;
+        
+        //GUI.skin.window.normal.background = Texture2D.whiteTexture;
+        //GUI.skin.window.onNormal.background = Texture2D.whiteTexture;
+        //if (errorMessages.Count > 0)
+        //{
+        //    for (int i = 0; i < errorMessages.Count; i++)
+        //    {
+        //        GUI.Window(i, new Rect((Screen.width / 2) - 150, (Screen.height / 2) - 175, 300, 250), WindowFunc, "Exception occurred!");
+        //    }
+        //}
+        //GUI.color = oldcol;
+        //GUI.backgroundColor = oldbg;
+        //GUI.contentColor = oldcont;
+        
         if (!hasStarted)
         {
             if (GUI.Button(new Rect(100, 150, 100, 40), "Host Server"))
@@ -106,6 +175,9 @@ public class NetworkScript : MonoBehaviour
                 StartServerOrClient();
             }
         }
+        GameObject p1 = GameObject.Find($"Player0");
+        GUI.Label(new Rect(20, 20, 100, 40), $"Pos x: {p1?.transform.position.x}");
+        GUI.Label(new Rect(20, 35, 100, 40), $"Pos y: {p1?.transform.position.y}");
     }
 
     private void OnApplicationQuit()

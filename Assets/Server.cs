@@ -103,6 +103,7 @@ public class Server
             //    Debug.SetPinMessage($"Rtt: {(NetData.GetTimeStamp() - connection.SentData[index].TimeStamp).ToString("D6")} - Average Rtt: {connection.GetAverageRtt().ToString("0000.00")}");
         }
 
+        GameState preState = CurrentState.Clone();
         if (data.Commands != null && data.Commands.Length > 0)
         {
             for (int i = 0; i < data.Commands.Length; i++)
@@ -113,6 +114,11 @@ public class Server
                     connection.LastCommandId = data.Commands[i].Id;
                 }
             }
+        }
+        float preX = preState.GetPlayer(0).x, postX = CurrentState.GetPlayer(0).x;
+        if (Math.Abs(preState.GetPlayer(0).x - CurrentState.GetPlayer(0).x) > 5)
+        {
+            throw new Exception($"Here's the traitor your majesty! pre: {preX} post: {postX} time: {DateTime.Now.ToString()}");
         }
     }
 
